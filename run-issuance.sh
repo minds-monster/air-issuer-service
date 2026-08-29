@@ -1,0 +1,1 @@
+#!/bin/bashcd /Users/adamplace/air-issuer-servicenpm run issue-air-credential -- --email adam@munerate.com --mind 240b453e-f36b-1410-8466-00039ce7df11 --scopes "tweets.read,analytics.read" --label "Adam (Hello Minds)" --dry-run

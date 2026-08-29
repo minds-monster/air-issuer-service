@@ -22,6 +22,14 @@ export abstract class BaseSchema<T extends Record<string, unknown>> {
       holderDID: string;
       issuingService: SdJwtVcService;
       em?: EntityManager;
+      /**
+       * Per-request claim values, merged over whatever generateCredentialData
+       * derives. Some credentials carry facts that belong to the issuance
+       * request rather than to the subject's stored data — which Mind, which
+       * scopes — and generateCredentialData only receives a userId, so it has
+       * no way to produce them.
+       */
+      claimsOverride?: Partial<T>;
     },
   ): Promise<{ id: string; credentialIssuance: CredentialIssuance; credential: string }> {
     const { holderDID, issuingService: sdJwtVcService } = opts;
@@ -35,6 +43,9 @@ export abstract class BaseSchema<T extends Record<string, unknown>> {
 
     const claims: T & SdJwtVcPayload = {
       ...baseClaims,
+      ...(opts.claimsOverride ?? {}),
+      // Below the override on purpose: identity, expiry and revocation handle
+      // are the issuer's to set, and a caller must not be able to supply them.
       id,
       nonce,
       vct: this.vct ?? this.schemaId,

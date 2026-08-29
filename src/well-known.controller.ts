@@ -3,7 +3,11 @@ import { ConfigService } from '@nestjs/config';
 
 @Controller('.well-known')
 export class WellKnownController {
-  private readonly issuer = this.configService.getOrThrow<string>('ISSUER_ORIGIN');
+  // Must equal the `iss` SdJwtVcService stamps, or a verifier that fetches this
+  // document will conclude it describes a different issuer and refuse the keys.
+  private readonly issuer =
+    this.configService.get<string>('SD_JWT_ISSUER_ORIGIN') ??
+    this.configService.getOrThrow<string>('ISSUER_ORIGIN');
   private readonly jwks = JSON.parse(this.configService.getOrThrow<string>('SD_JWT_JWKS'));
 
   constructor(private readonly configService: ConfigService) {}

@@ -2,6 +2,8 @@ import { EntityManager, FilterQuery, FindOptions } from '@mikro-orm/postgresql';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { CredentialIssuingService } from '../iden3/services/credential-issuing.service';
+import { Revocation } from '../iden3/entities/revocation.entity';
+import { SdJwtVc } from '../sd-jwt/entities/sd-jwt-vc.entity';
 import { CredentialIssuance } from './entities/credential-issuance.entity';
 
 import { encryptText } from '../common/utils/encryption';
@@ -131,6 +133,73 @@ export class IssuerService {
 
       await em.persist(credentialIssuance).flush();
     });
+  }
+
+  /**
+   * Issue an SD-JWT-VC and return it to the caller.
+   *
+   * Deliberately not `issueVc`. That path encrypts the credential to the
+   * holder's public key and pushes it to Moca DStorage, returning nothing —
+   * right for a credential a person will later present through the AIR wallet,
+   * useless for a headless agent, which cannot decrypt it and has no browser in
+   * which to run the AIR verifier. A bearer-presented credential has to come
+   * back over the wire, so this skips the encrypt/DStorage leg entirely.
+   *
+   * The CredentialIssuance row is still written, so `revocation-status` and
+   * `issuance-history` behave exactly as they do for any other credential.
+   */
+  async issueSdJwtVcDirect(
+    schemaId: string,
+    holderDID: string,
+    claimsOverride: Record<string, unknown>,
+    userId?: string,
+  ): Promise<{ credential: string; credentialId: string; nonce: string; expiresAt: string }> {
+    const schema = this.schemaIdMap[ProofType.SD_JWT_VC][schemaId];
+    if (schema === undefined) throw new NotFoundException(`Invalid Schema: ${schemaId}`);
+
+    return await this.entityManager.transactional(async (em) => {
+      const { credential, credentialIssuance, id } = await schema.issue(userId ?? holderDID, {
+        holderDID,
+        issuingService: this.sdJwtVcService,
+        em,
+        claimsOverride,
+      });
+
+      await em.persist(credentialIssuance).flush();
+
+      return {
+        credential,
+        credentialId: id,
+        nonce: credentialIssuance.revocationNonce,
+        expiresAt: credentialIssuance.expiresAt.toISOString(),
+      };
+    });
+  }
+
+  /**
+   * Revoke by nonce without involving the iden3 stack.
+   *
+   * `CredentialIssuingService.revoke` first asserts that the iden3 identity
+   * wallet finished booting from SEED — irrelevant to an SD-JWT credential, and
+   * a way for revocation to fail for reasons unrelated to it. Revocation status
+   * is just a row count on Revocation (see `isRevoked`), so writing that row is
+   * both necessary and sufficient. Revocation is the one operation that should
+   * have no avoidable dependencies.
+   */
+  async revokeSdJwt(nonce: string): Promise<{ revoked: boolean }> {
+    await this.entityManager.transactional(async (em) => {
+      const existing = await em.findOne(Revocation, { nonce });
+      if (!existing) {
+        const revocation = new Revocation();
+        revocation.nonce = nonce;
+        revocation.createdAt = new Date();
+        em.persist(revocation);
+      }
+      await em.nativeUpdate(CredentialIssuance, { revocationNonce: nonce }, { revokedAt: new Date() });
+      await em.nativeUpdate(SdJwtVc, { nonce }, { revoked: true });
+      await em.flush();
+    });
+    return { revoked: true };
   }
 
   private async issueBjjSig(schemaId: string, holder: { userId: string; holderDID: string }) {

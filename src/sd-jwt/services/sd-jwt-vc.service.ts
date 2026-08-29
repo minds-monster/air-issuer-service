@@ -11,7 +11,20 @@ import { SdJwtVc } from '../entities/sd-jwt-vc.entity';
 
 @Injectable()
 export class SdJwtVcService implements OnModuleInit {
-  private readonly issuerOrigin = this.configService.getOrThrow<string>('ISSUER_ORIGIN');
+  /**
+   * The `iss` of every SD-JWT-VC, and the origin a verifier resolves issuer
+   * metadata from (`${iss}/.well-known/jwt-vc-issuer`). It must be a URL the
+   * verifier can actually reach.
+   *
+   * Kept separate from ISSUER_ORIGIN, which is the `iss` of the *partner* JWT
+   * sent to Moca's AIR API and is validated against a whitelisted issuer on
+   * their side. Repointing that at a local tunnel would break partner auth, so
+   * the two are configured independently even though a hosted deployment would
+   * normally set them the same.
+   */
+  private readonly issuerOrigin =
+    this.configService.get<string>('SD_JWT_ISSUER_ORIGIN') ??
+    this.configService.getOrThrow<string>('ISSUER_ORIGIN');
   private readonly partnerId = this.configService.getOrThrow<string>('PARTNER_ID');
   private readonly partnerPrivateKeyAlg = this.configService.get<string>('PARTNER_PRIVATE_KEY_ALG') ?? 'ES256';
   private readonly partnerPrivateKeyDer = this.configService.getOrThrow<string>('PARTNER_PRIVATE_KEY_DER');

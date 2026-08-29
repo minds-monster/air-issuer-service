@@ -8,6 +8,7 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "issue-air-credential": "RUNNER=true nest start --entryFile runners/issue-air-credential",
     "batch-issue-vc-csv": "RUNNER=true nest start --entryFile runners/batch-issue-vc-csv",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -23,7 +24,10 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@iden3/js-crypto": "^1.3.2",
     "@iden3/js-jsonld-merklization": "^1.7.2",
+    "@iden3/js-jwz": "^1.14.0",
+    "@iden3/js-merkletree": "^1.5.2",
     "@mikro-orm/cli": "^7.1.1",
     "@mikro-orm/core": "^7.1.1",
     "@mikro-orm/migrations": "^7.1.1",
@@ -43,11 +47,17 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "csv": "^6.6.0",
+    "dotenv": "^17.4.2",
+    "ffjavascript": "^0.3.1",
     "jose": "^6.2.3",
     "jsonld": "^9.0.0",
+    "jsonwebtoken": "^9.0.3",
     "lodash": "^4.18.1",
+    "multiformats": "^14.0.5",
     "reflect-metadata": "^0.2.2",
+    "rfc4648": "^1.5.4",
     "rxjs": "^7.8.1",
+    "snarkjs": "^0.7.6",
     "socks-proxy-agent": "^10.0.0"
   },
   "devDependencies": {

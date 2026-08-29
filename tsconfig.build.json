@@ -1,4 +1,8 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+  // `scripts/` holds standalone operator probes, run directly via tsx and never compiled.
+  // Leaving them in widens the inferred rootDir to the repo root, which relocates the
+  // whole build from dist/ to dist/src/ — quietly breaking `start:prod` (node dist/main)
+  // and the ORM's ./dist/**/*.entity.js glob.
+  "exclude": ["node_modules", "test", "dist", "scripts", "**/*spec.ts"]
 }
