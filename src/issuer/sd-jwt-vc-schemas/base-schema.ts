@@ -21,6 +21,7 @@ export abstract class BaseSchema<T extends Record<string, unknown>> {
     opts: {
       holderDID: string;
       issuingService: SdJwtVcService;
+      cnf?: { jwk: JsonWebKey };
       em?: EntityManager;
       /**
        * Per-request claim values, merged over whatever generateCredentialData
@@ -53,6 +54,7 @@ export abstract class BaseSchema<T extends Record<string, unknown>> {
       exp: Math.floor(Date.now() / 1_000) + this.expirySec,
     };
 
+    if (opts.cnf) claims.cnf = opts.cnf;
     if (this['vct#integrity']) claims['vct#integrity'] = this['vct#integrity'];
 
     const credentialIssuance = new CredentialIssuance();

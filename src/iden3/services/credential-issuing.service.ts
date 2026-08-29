@@ -19,7 +19,7 @@ import {
   Profile,
   SubjectPosition,
   W3CCredential,
-} from '@mocanetwork/privado-js-sdk';
+} from '@mocanetwork/identity-js-sdk';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

@@ -1,4 +1,4 @@
-import { MerklizedRootPosition } from '@mocanetwork/privado-js-sdk';
+import { MerklizedRootPosition } from '@mocanetwork/identity-js-sdk';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -15,6 +15,7 @@ import { PartnerJwtService } from '../services/partner-jwt.service';
 import { AIR_API } from '../common/api-origin-dictionary';
 import { encryptText } from '../common/utils/encryption';
 import { hexStrToBuffer } from '../common/utils/string';
+import { ProofType } from '../issuer/enums/proof-type.enum';
 
 type CredentialType = {
   id: string;
@@ -87,6 +88,7 @@ async function batchIssueVcCsv({ id, url, type }: CredentialType, items: BatchIs
       const dstorageResponse = await dStorageApiService.createObject(
         {
           holderDid: identity.did,
+          proofType: ProofType.BJJ_SIG_2021,
           schemaId: id,
           expiresAt: new Date(expiration * 1_000).toISOString(),
           data: encryptedData.encryptedData,

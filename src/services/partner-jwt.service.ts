@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { importPKCS8, JWTHeaderParameters, SignJWT } from 'jose';
+import { importPKCS8, JWTHeaderParameters, JWTPayload, SignJWT } from 'jose';
 
 const EXPIRY_MS = 15 * 60_000;
 const CACHE_EXPIRY_THRESHOLD_MS = 2 * 60_000;
@@ -53,5 +53,21 @@ export class PartnerJwtService implements OnModuleInit {
     setTimeout(() => delete this.jwtCache[cacheId], cacheExpiry);
 
     return jwt;
+  }
+
+  async signToken(params: { protectedHeader: Partial<JWTHeaderParameters>; payload: JWTPayload }): Promise<string> {
+    const headers: JWTHeaderParameters = {
+      ...params.protectedHeader,
+      alg: this.alg,
+      kid: this.kid,
+    };
+
+    const signJwt = new SignJWT({ ...params.payload, partnerId: this.partnerId });
+    signJwt.setProtectedHeader(headers);
+    signJwt.setIssuer(this.issuerOrigin);
+
+    if (params.payload.iat !== undefined) signJwt.setIssuedAt(new Date());
+
+    return signJwt.sign(this.partnerPrivateKey);
   }
 }

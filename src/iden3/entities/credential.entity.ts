@@ -1,5 +1,5 @@
 import { defineEntity, p } from '@mikro-orm/postgresql';
-import { W3CCredential } from '@mocanetwork/privado-js-sdk';
+import { W3CCredential } from '@mocanetwork/identity-js-sdk';
 
 export const CredentialSchema = defineEntity({
   name: 'Credential',

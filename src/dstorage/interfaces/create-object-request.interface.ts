@@ -1,3 +1,5 @@
+import { ProofType } from '../../issuer/enums/proof-type.enum';
+
 export interface CreateObjectRequestHeader {
   ['x-partner-auth']: string; // Partner JWT (JWKS)
   ['idempotency-key']?: string;
@@ -5,6 +7,8 @@ export interface CreateObjectRequestHeader {
 
 export interface CreateObjectRequestBody {
   holderDid: string;
+
+  proofType: ProofType;
 
   schemaId: string;
 

@@ -1,5 +1,5 @@
 import { DocumentLoader } from '@iden3/js-jsonld-merklization';
-import { cacheLoader } from '@mocanetwork/privado-js-sdk';
+import { cacheLoader } from '@mocanetwork/identity-js-sdk';
 import { HttpService } from '@nestjs/axios';
 import { JsonLd } from 'jsonld/jsonld-spec';
 

@@ -9,6 +9,7 @@ export const SdJwtVcSchema = defineEntity({
     nonce: p.bigint<'string'>().unique(),
     revoked: p.boolean().default(false),
     createdAt: p.datetime().defaultRaw('NOW()'),
+    updatedAt: p.datetime().defaultRaw('NOW()'),
   },
 });
 

@@ -1,5 +1,5 @@
 import { EntityManager } from '@mikro-orm/postgresql';
-import { MerklizedRootPosition, W3CCredential } from '@mocanetwork/privado-js-sdk';
+import { MerklizedRootPosition, W3CCredential } from '@mocanetwork/identity-js-sdk';
 import { CredentialIssuingService } from '../../iden3/services/credential-issuing.service';
 import { CredentialIssuance } from '../entities/credential-issuance.entity';
 

@@ -1,4 +1,4 @@
-import { EntityManager, FilterQuery, FindOptions } from '@mikro-orm/postgresql';
+import { EntityManager, FilterQuery, FindOptions, raw } from '@mikro-orm/postgresql';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { CredentialIssuingService } from '../iden3/services/credential-issuing.service';
@@ -98,7 +98,12 @@ export class IssuerService {
 
   async issueVc(
     schemaId: string,
-    holder: { userId: string; holderDID: string; pubKey: string },
+    holder: {
+      userId: string;
+      holderDID: string;
+      encryptionKey: string;
+      signingKey?: { jwk: JsonWebKey };
+    },
     proofType?: ProofType,
   ): Promise<void> {
     proofType ??= ProofType.BJJ_SIG_2021;
@@ -111,7 +116,7 @@ export class IssuerService {
       const { credential, credentialIssuance, id: credentialId } = issued;
 
       const payload = JSON.stringify(credential);
-      const encryptedData = await encryptText(payload, hexStrToBuffer(holder.pubKey), { encoding: 'base64' });
+      const encryptedData = await encryptText(payload, hexStrToBuffer(holder.encryptionKey), { encoding: 'base64' });
 
       await em.persist(credentialIssuance).flush();
 
@@ -119,6 +124,7 @@ export class IssuerService {
       const dstorageInfo = await this.dStorageApiService.createObject(
         {
           holderDid: holder.holderDID,
+          proofType,
           schemaId,
           expiresAt: credentialIssuance.expiresAt.toISOString(),
           data: encryptedData.encryptedData,
@@ -212,13 +218,17 @@ export class IssuerService {
     });
   }
 
-  private async issueSdJwtVc(schemaId: string, holder: { userId: string; holderDID: string }) {
+  private async issueSdJwtVc(
+    schemaId: string,
+    holder: { userId: string; holderDID: string; signingKey?: { jwk: JsonWebKey } },
+  ) {
     const schema = this.schemaIdMap[ProofType.SD_JWT_VC][schemaId];
     if (schema === undefined) throw new NotFoundException(`Invalid Schema: ${schemaId}`);
 
     return await schema.issue(holder.userId, {
       holderDID: holder.holderDID,
       issuingService: this.sdJwtVcService,
+      cnf: holder.signingKey,
     });
   }
 
@@ -269,15 +279,24 @@ export class IssuerService {
     };
   }
 
-  async revocationStatus(nonce: string) {
-    const isRevoked = await this.credentialIssuingService.isRevoked(nonce);
+  async revocationStatus(nonce: string, proofType?: ProofType) {
+    let isRevoked: boolean;
+    if (proofType === ProofType.SD_JWT_VC) {
+      isRevoked = await this.sdJwtVcService.isRevoked(nonce);
+    } else {
+      isRevoked = await this.credentialIssuingService.isRevoked(nonce);
+    }
     return { isRevoked };
   }
 
-  async revoke(revocationNonce: string): Promise<void> {
+  async revoke(revocationNonce: string, proofType?: ProofType): Promise<void> {
     await this.entityManager.transactional(async (em) => {
-      const revocation = await this.credentialIssuingService.revoke(revocationNonce);
-      await em.nativeUpdate(CredentialIssuance, { revocationNonce }, { revokedAt: revocation.createdAt });
+      if (proofType === ProofType.SD_JWT_VC) {
+        await this.sdJwtVcService.revoke(revocationNonce);
+      } else {
+        await this.credentialIssuingService.revoke(revocationNonce);
+      }
+      await em.nativeUpdate(CredentialIssuance, { revocationNonce }, { revokedAt: raw('NOW()') });
     });
   }
 }
